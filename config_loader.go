@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/hashicorp/go-envparse"
 	"gopkg.in/yaml.v3"
@@ -281,6 +282,8 @@ func (c *Loader) processStruct(v reflect.Value) error {
 
 // setField sets the value of a field based on its type
 func (c *Loader) setField(field reflect.Value, value string) error {
+	value = strings.TrimSpace(value)
+
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)
