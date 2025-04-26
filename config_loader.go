@@ -85,7 +85,11 @@ func (c *Loader) Load(cfg any) error {
 	if c.filePath != "" {
 		file, err := c.openFile()
 		if err != nil {
-			slog.Warn(fmt.Sprintf("failed to open file: %s", c.filePath), "error", err)
+			if strings.Contains(err.Error(), "no such file or directory") {
+				slog.Debug(fmt.Sprintf("file not found: %s", c.filePath))
+			} else {
+				slog.Error(fmt.Sprintf("failed to open file: %s", c.filePath), "error", err)
+			}
 		} else {
 			defer func(file *os.File) {
 				err = file.Close()
