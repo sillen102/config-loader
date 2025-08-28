@@ -170,6 +170,12 @@ func (c *Loader) loadYamlFile(file *os.File, cfg any) (bool, error) {
 		return false, fmt.Errorf("failed to read YAML file: %w", err)
 	}
 
+	// Reset struct to zero value before unmarshalling YAML
+	ptrVal := reflect.ValueOf(cfg)
+	if ptrVal.Kind() == reflect.Ptr {
+		ptrVal.Elem().Set(reflect.Zero(ptrVal.Elem().Type()))
+	}
+
 	// Unmarshal directly into the struct
 	if err = yaml.Unmarshal(data, cfg); err != nil {
 		return false, fmt.Errorf("failed to parse YAML file: %w", err)
@@ -309,6 +315,31 @@ func (c *Loader) setField(field reflect.Value, value string) error {
 			return err
 		}
 		field.SetFloat(floatValue)
+	case reflect.Slice:
+		// Assuming comma-separated values for slices
+		parts := strings.Split(value, ",")
+		slice := reflect.MakeSlice(field.Type(), len(parts), len(parts))
+		for i, part := range parts {
+			slice.Index(i).SetString(strings.TrimSpace(part))
+		}
+		field.Set(slice)
+	case reflect.Map:
+		// Assuming comma-separated key=value pairs for maps
+		pairs := strings.Split(value, ",")
+		mapType := field.Type()
+		newMap := reflect.MakeMap(mapType)
+		for _, pair := range pairs {
+			kv := strings.SplitN(pair, ":", 2)
+			if len(kv) != 2 {
+				return fmt.Errorf("invalid map entry: %s", pair)
+			}
+			key := strings.TrimSpace(kv[0])
+			val := strings.TrimSpace(kv[1])
+			mapKey := reflect.ValueOf(key).Convert(mapType.Key())
+			mapValue := reflect.ValueOf(val).Convert(mapType.Elem())
+			newMap.SetMapIndex(mapKey, mapValue)
+		}
+		field.Set(newMap)
 	default:
 		return fmt.Errorf("unsupported field type: %s", field.Kind())
 	}
