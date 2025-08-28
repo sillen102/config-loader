@@ -1,6 +1,6 @@
 module github.com/sillen102/config-loader
 
-go 1.24
+go 1.25
 
 require (
 	github.com/hashicorp/go-envparse v0.1.0
