@@ -323,23 +323,6 @@ func (c *Loader) setField(field reflect.Value, value string) error {
 			slice.Index(i).SetString(strings.TrimSpace(part))
 		}
 		field.Set(slice)
-	case reflect.Map:
-		// Assuming comma-separated key=value pairs for maps
-		pairs := strings.Split(value, ",")
-		mapType := field.Type()
-		newMap := reflect.MakeMap(mapType)
-		for _, pair := range pairs {
-			kv := strings.SplitN(pair, ":", 2)
-			if len(kv) != 2 {
-				return fmt.Errorf("invalid map entry: %s", pair)
-			}
-			key := strings.TrimSpace(kv[0])
-			val := strings.TrimSpace(kv[1])
-			mapKey := reflect.ValueOf(key).Convert(mapType.Key())
-			mapValue := reflect.ValueOf(val).Convert(mapType.Elem())
-			newMap.SetMapIndex(mapKey, mapValue)
-		}
-		field.Set(newMap)
 	default:
 		return fmt.Errorf("unsupported field type: %s", field.Kind())
 	}

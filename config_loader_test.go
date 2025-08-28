@@ -11,13 +11,12 @@ import (
 )
 
 type TestConfig struct {
-	String string            `env:"TEST_STRING" default:"test"`
-	Int    int               `env:"TEST_INT" default:"123"`
-	Int64  int64             `env:"TEST_INT64" default:"123456"`
-	Bool   bool              `env:"TEST_BOOL" default:"true"`
-	Float  float64           `env:"TEST_FLOAT" default:"1.23"`
-	Slice  []string          `env:"TEST_SLICE" default:"a,b,c"`
-	Map    map[string]string `env:"TEST_MAP" default:"key1:val1,key2:val2"`
+	String string   `env:"TEST_STRING" default:"test"`
+	Int    int      `env:"TEST_INT" default:"123"`
+	Int64  int64    `env:"TEST_INT64" default:"123456"`
+	Bool   bool     `env:"TEST_BOOL" default:"true"`
+	Float  float64  `env:"TEST_FLOAT" default:"1.23"`
+	Slice  []string `env:"TEST_SLICE" default:"a,b,c"`
 	Nested NestedConfig
 }
 
@@ -35,9 +34,6 @@ float: 1.45
 nested:
   string: nested_test
 slice: ["c", "d", "e"]
-map:
-  key3: val3
-  key4: val4
 `
 
 	yamlFilePath, cleanup := createTempFile(t, yamlContent)
@@ -63,7 +59,32 @@ map:
 			String: "nested_test",
 		},
 		Slice: []string{"c", "d", "e"},
-		Map:   map[string]string{"key3": "val3", "key4": "val4"},
+	}
+
+	if !reflect.DeepEqual(cfg, expected) {
+		t.Errorf("Expected %+v, got %+v", expected, cfg)
+	}
+}
+
+func TestLoadDefaults(t *testing.T) {
+	cfg := TestConfig{}
+	loader := configloader.NewLoader(nil)
+
+	err := loader.Load(&cfg)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	expected := TestConfig{
+		String: "test",
+		Int:    123,
+		Int64:  123456,
+		Bool:   true,
+		Float:  1.23,
+		Nested: NestedConfig{
+			String: "test",
+		},
+		Slice: []string{"a", "b", "c"},
 	}
 
 	if !reflect.DeepEqual(cfg, expected) {
@@ -196,7 +217,6 @@ func TestLoadEnvVars(t *testing.T) {
 	_ = os.Unsetenv("TEST_FLOAT")
 	_ = os.Unsetenv("NESTED_TEST_STRING")
 	_ = os.Unsetenv("TEST_SLICE")
-	_ = os.Unsetenv("TEST_MAP")
 
 	cfg := TestConfig{}
 	loader := configloader.NewLoader(nil)
@@ -218,7 +238,6 @@ func TestLoadEnvVars(t *testing.T) {
 					String: "test",
 				},
 				Slice: []string{"a", "b", "c"},
-				Map:   map[string]string{"key1": "val1", "key2": "val2"},
 			},
 		},
 		{
@@ -231,7 +250,6 @@ func TestLoadEnvVars(t *testing.T) {
 				_ = os.Setenv("TEST_FLOAT", "1.45")
 				_ = os.Setenv("NESTED_TEST_STRING", "nested_test")
 				_ = os.Setenv("TEST_SLICE", "x,y,z")
-				_ = os.Setenv("TEST_MAP", "key3:val3,key4:val4")
 			},
 			expected: TestConfig{
 				String: "test2",
@@ -243,7 +261,6 @@ func TestLoadEnvVars(t *testing.T) {
 					String: "nested_test",
 				},
 				Slice: []string{"x", "y", "z"},
-				Map:   map[string]string{"key3": "val3", "key4": "val4"},
 			},
 		},
 	}
@@ -293,7 +310,6 @@ TEST_BOOL=false
 TEST_FLOAT=1.45
 NESTED_TEST_STRING=nested_test
 TEST_SLICE=x,y,z
-TEST_MAP=key6:val6,key7:val7
 `
 
 	envFilePath, cleanup := createTempFile(t, envContent)
@@ -320,7 +336,6 @@ TEST_MAP=key6:val6,key7:val7
 					String: "nested_test",
 				},
 				Slice: []string{"x", "y", "z"},
-				Map:   map[string]string{"key6": "val6", "key7": "val7"},
 			},
 		},
 	}
